@@ -4,18 +4,28 @@
 
 
 Start
-  = _ head:Where tail:(SpaceWhere)* JUNK EOF
+  = _ head:Where? tail:(SpaceWhere)* _ junk:JUNK? EOF
     {
-      return [head, ...tail];
+      var out = [head, ...tail];
+      if(junk){
+        out.push(junk);
+      }
+      return out;
     }
 
-JUNK = .*
+JUNK = a:$.+ {
+  return {
+    type: 'JUNK',
+    value: a,
+    location: location()
+  }
+}
 
 SpaceWhere
   = __ a:Where {return a;}
 
 Where
-  = "(" _ a:Where _ ( ")" / _ EOF ) _
+  = "(" _ a:Where _ ( ")" / _ EOF )
     {
       return {
         type: 'Group',
@@ -25,8 +35,18 @@ Where
     }
   / left:Expression __ andOr:(OrToken/AndToken) __ right:Expression
     {
+      var type = null
+      switch(andOr.toString().toLowerCase()){
+        case 'or':
+          type = 'OrGroup';
+          break;
+        case 'and':
+          type = 'AndGroup';
+          break;
+      }
+
       return {
-        type: andOr + 'Group',
+        type: type,
         left: left,
         right: right,
       }
@@ -46,7 +66,6 @@ Expression
     }
   / value:Literal
     {
-      console.log(333, value)
       return {
         type: 'FullSearch',
         value: value,
@@ -89,13 +108,17 @@ OperatorLiteral
         case ':':
         case '=':
         case '==':
+          value = '=';
+          break;
         case '===':
           value = '=';
           break;
         case '<>':
         case '!=':
-        case '!==':
           value = "!=";
+          break;
+        case '!==':
+          value = "!==";
           break;
         case '>=':
         case '=>':
@@ -229,7 +252,7 @@ Literal
   = a:NullLiteral !"." {return a;}
   / a:BooleanLiteral !"." {return a;}
   / a:NumericLiteral !"." {return a;}
-  / a:StringLiteral !"." {console.log(555,a);return a;}
+  / a:StringLiteral !"." {return a;}
 
 NullLiteral
   = NullToken {return {type:'Literal', value: null, location: location()};}
@@ -239,13 +262,13 @@ BooleanLiteral
   / FalseToken {return {type:'Literal', value: false, location: location()};}
 
 NumericLiteral
-  = a:HexIntegerLiteral !(IdentStart / DecimalDigit) { return a;}
-  / a:DecimalLiteral !(IdentStart / DecimalDigit) { return a;}
+  = a:HexIntegerLiteral !(IdentStart / DecimalDigit) { return a; }
+  / a:DecimalLiteral !(IdentStart / DecimalDigit) { return a; }
 
 DecimalLiteral
-  = DecimalIntegerLiteral "." DecimalDigit* ExponentPart? {console.log(777, text()); return {type: 'Literal', value: parseFloat(text())}}
-  / "." DecimalDigit* ExponentPart? {console.log(778, text()); return {type: 'Literal', value: parseFloat(text())}}
-  / DecimalIntegerLiteral+ ExponentPart? {console.log(779, text()); return {type: 'Literal', value: parseFloat(text())}}
+  = DecimalIntegerLiteral "." DecimalDigit* ExponentPart? { return {type: 'Literal', value: parseFloat(text())}; }
+  / "." DecimalDigit* ExponentPart? { return {type: 'Literal', value: parseFloat(text())}; }
+  / DecimalIntegerLiteral+ ExponentPart? { return {type: 'Literal', value: parseFloat(text())}; }
 
 DecimalIntegerLiteral
   = "0"

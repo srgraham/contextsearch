@@ -4,16 +4,19 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "pegjs": "pegjs search.pegjs && browserify search.js require.js -o bundle.js"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "browserify": "^16.2.3",
     "chai": "^4.2.0",
     "mocha": "^6.1.4"
   },
   "dependencies": {
     "jquery": "^3.4.1",
-    "lodash": "^4.17.11"
+    "lodash": "^4.17.11",
+    "pegjs": "^0.10.0"
   }
 }
