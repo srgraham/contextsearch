@@ -27,11 +27,7 @@ SpaceWhere
 Where
   = "(" _ a:Where _ ( ")" / _ EOF )
     {
-      return {
-        type: 'Group',
-        where: a,
-        location: location(),
-      };
+      return a;
     }
   / left:Expression __ andOr:(OrToken/AndToken) __ right:Expression
     {
@@ -64,6 +60,14 @@ Expression
         location: location(),
       };
     }
+  / regex:Regex
+    {
+      return {
+        type: 'Regex',
+        regex: regex,
+        location: location(),
+      }
+    }
   / value:Literal
     {
       return {
@@ -86,13 +90,13 @@ Column
 OperatorLiteral
   = operator:(
         ":"
-      / "="
-      / "=="
       / "==="
+      / "=="
+      / "="
 
       / "<>"
-      / "!="
       / "!=="
+      / "!="
 
       / ">="
       / "=>"
@@ -111,7 +115,7 @@ OperatorLiteral
           value = '=';
           break;
         case '===':
-          value = '=';
+          value = '===';
           break;
         case '<>':
         case '!=':
@@ -338,6 +342,50 @@ DoubleStringCharacter
 SingleStringCharacter
   = !"'" !"\\" $.
   / "\\" sequence:EscapeSequence {return sequence;}
+
+Regex "regular expression"
+  = "/" pattern:$RegexBody "/" flags:$RegexFlags
+    {
+      var regex;
+
+      try {
+        regex = new RegExp(pattern, flags);
+      } catch (e) {
+        error(e.message);
+      }
+
+      return regex;
+    }
+
+RegexBody
+  = RegexFirstChar RegexChar*
+
+RegexFirstChar
+  = ![*\\/[] RegexNonTerminator
+  / RegexBackslashSequence
+  / RegexClass
+
+RegexChar
+  = ![\\/[] RegexNonTerminator
+  / RegexBackslashSequence
+  / RegexClass
+
+RegexBackslashSequence
+  = "\\" RegexNonTerminator
+
+RegexNonTerminator
+  = !"\n" !"\r" .
+
+RegexClass
+  = "[" RegexClassChar* "]"
+
+RegexClassChar
+  = ![\]\\] RegexNonTerminator
+  / RegexBackslashSequence
+
+RegexFlags
+  = [gimsuy]*
+
 
 _ "whitespace"
   = $[ \t\n\r]*
